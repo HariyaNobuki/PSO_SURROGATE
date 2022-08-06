@@ -4,6 +4,13 @@ import os , sys
 import glob
 import pandas as pd
 import matplotlib.pyplot as plt
+from scipy.interpolate import Rbf
+from scipy.spatial import distance
+from pyDOE2 import lhs
+from scipy.spatial import distance
+from scipy.stats import rankdata
+from scipy.stats import kendalltau
+from sklearn.ensemble import RandomForestRegressor  # randf
 
 class RandomSearch:
 
@@ -63,6 +70,19 @@ class ParticleSwarmOptimization:
 
         self.BestX     = None # Global best
         self.BestFX    = None # Best fitness (of global best)
+
+        ARCHIVE_X = np.array([])
+        ARCHIVE_F = np.array([])
+        ARCHIVE_POP = []
+        ARCHIVE_DIV = []
+        fit_list = []
+        fit_dict = pd.DataFrame()
+
+        aVar = ARCHIVE_X
+        aObj = ARCHIVE_F
+        data = np.vstack((aVar.T, aObj.T))
+        rbf = Rbf(*data, function='cubic')
+
         
     def initialization(self):
         for i in range(self.N):            
@@ -91,8 +111,8 @@ class ParticleSwarmOptimization:
                     self.Xs[i][j] = self.Xmax
                 if self.Xs[i][j] < -self.Xmax:
                     self.Xs[i][j] = -self.Xmax
-                    
-    def update(self):
+
+    def update(self):   # velocity update
         for i in range(self.N):
             for j in range(self.PROB_DIMEINTION):
                 self.Vs[i][j] = self.W * self.Vs[i][j] + self.C1 * np.random.rand()*(self.Ps[i][j] - self.Xs[i][j]) + self.C2 * np.random.rand()*(self.BestX[j] - self.Xs[i][j])
@@ -105,9 +125,6 @@ class ParticleSwarmOptimization:
 
 # Do not change
 def run(problem, optimizer, MAX_EVALUATIONS, opt,filename , trial):
-    print("run {}".format(filename))
-
-    
     evals = 0
     log   = []
 
