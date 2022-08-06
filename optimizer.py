@@ -215,23 +215,14 @@ class RBF_ParticleSwarmOptimization:
                     if self.CAND[0][j] > self.Vmax:
                         self.CAND[0][j] = self.Vmax
                     if self.CAND[0][j] < -self.Vmax:
-                        self.CAND[0][j] = -self.Vmax
-                candX_pre = self.Xs[i][j] + self.CAND[0][j]
-                if candX_pre > self.Xmax:
-                    candX_pre = self.Xmax
-                if candX_pre < -self.Xmax:
-                    candX_pre = -self.Xmax
-                candX.append(candX_pre) # Vの候補配列の納品
-            
+                        self.CAND[0][j] = -self.Vmax    # 次元ごとの配列が確定している
+                candX_pre = self.Xs[i] + self.CAND[0]
+                candX_pre = np.clip(candX_pre, -self.Xmax, self.Xmax)
+                candX.append(candX_pre.tolist()) # Vの候補配列の納品
+            candX = np.array(candX)
+            rbf_fitness =  self.rbf(*(candX.T))
             print('END POINT')
-        for i in range(self.N):
-            for j in range(self.PROB_DIMEINTION):
-                self.Xs[i][j] = self.Xs[i][j] + self.Vs[i][j]
-                # bounding 
-                if self.Xs[i][j] > self.Xmax:
-                    self.Xs[i][j] = self.Xmax
-                if self.Xs[i][j] < -self.Xmax:
-                    self.Xs[i][j] = -self.Xmax
+
         for i in range(self.N):
             # ind evaluate
             tmp = prob.evaluate(self.Xs[i])
