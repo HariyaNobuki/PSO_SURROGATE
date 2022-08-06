@@ -71,12 +71,13 @@ class ParticleSwarmOptimization:
 
     def evaluate(self, prob):
         for i in range(self.N):
+            # ind evaluate
             tmp = prob.evaluate(self.Xs[i])
-
+            # ind update
             if self.Fs[i] == None or tmp <= self.Fs[i]:
                 self.Fs[i] = tmp
                 self.Ps[i] = [self.Xs[i][j] for j in range(self.PROB_DIMEINTION)]
-
+            # pop update
             if self.BestFX == None or tmp <= self.BestFX:
                 self.BestFX = tmp
                 self.BestX = [self.Xs[i][j] for j in range(self.PROB_DIMEINTION)]
@@ -85,11 +86,12 @@ class ParticleSwarmOptimization:
          for i in range(self.N):
              for j in range(self.PROB_DIMEINTION):
                 self.Xs[i][j] = self.Xs[i][j] + self.Vs[i][j]
-                
+                # bounding 
                 if self.Xs[i][j] > self.Xmax:
                     self.Xs[i][j] = self.Xmax
                 if self.Xs[i][j] < -self.Xmax:
                     self.Xs[i][j] = -self.Xmax
+                    
     def update(self):
         for i in range(self.N):
             for j in range(self.PROB_DIMEINTION):
