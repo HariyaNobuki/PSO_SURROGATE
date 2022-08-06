@@ -146,6 +146,7 @@ class RBF_ParticleSwarmOptimization:
         self.C2   = C2    # Social Learning factor
         self.Vmax = Vmax  # Maximum velocity
         self.Xmax = Xmax  # Defined range of position variables (search space)
+        self.SUR = 10
 
         #Problem settings
         self.MAX_EVALUATIONS = MAX_EVALUATIONS 
@@ -156,6 +157,7 @@ class RBF_ParticleSwarmOptimization:
         self.Fs        = [None for _ in range(self.N)] # Fitness (personal best's fitness)
         self.Ps        = [None for _ in range(self.N)] # Personal best's position
         self.Vs        = [None for _ in range(self.N)] # Velocity
+        self.CAND      = [None for _ in range(self.N)]
 
         self.BestX     = None # Global best
         self.BestFX    = None # Best fitness (of global best)
@@ -171,6 +173,7 @@ class RBF_ParticleSwarmOptimization:
         for i in range(self.N):            
             self.Xs[i] = np.random.rand(self.PROB_DIMEINTION) *  (2* self.Xmax) - self.Xmax
             self.Vs[i] = np.random.rand(self.PROB_DIMEINTION) *  (2* self.Vmax) - self.Vmax
+            self.CAND[i] = np.random.rand(self.PROB_DIMEINTION) *  (2* self.Vmax) - self.Vmax
 
     def init_evaluate(self, prob):
         for i in range(self.N):
@@ -199,6 +202,42 @@ class RBF_ParticleSwarmOptimization:
         aObj = self.ARCHIVE_F
         data = np.vstack((aVar.T, aObj.T))
         self.rbf = Rbf(*data, function='cubic')
+    
+    def localrainforcements(self,prob):
+        print('### local rainforcement ###')
+        candX = []
+        # Velocity screening
+        for i in range(self.N): # candidate pop
+            for sur in range(self.SUR): # screening
+                for j in range(self.PROB_DIMEINTION):
+                    self.CAND[0][j] = self.W * self.Vs[i][j] + self.C1 * np.random.rand()*(self.Ps[i][j] - self.Xs[i][j]) + self.C2 * np.random.rand()*(self.BestX[j] - self.Xs[i][j])
+                    
+                    if self.CAND[0][j] > self.Vmax:
+                        self.CAND[0][j] = self.Vmax
+                    if self.CAND[0][j] < -self.Vmax:
+                        self.CAND[0][j] = -self.Vmax
+                candX.append(self.CAND[0].tolist())
+                print('END POINT')
+        for i in range(self.N):
+            for j in range(self.PROB_DIMEINTION):
+                self.Xs[i][j] = self.Xs[i][j] + self.Vs[i][j]
+                # bounding 
+                if self.Xs[i][j] > self.Xmax:
+                    self.Xs[i][j] = self.Xmax
+                if self.Xs[i][j] < -self.Xmax:
+                    self.Xs[i][j] = -self.Xmax
+        for i in range(self.N):
+            # ind evaluate
+            tmp = prob.evaluate(self.Xs[i])
+            # ind update
+            if self.Fs[i] == None or tmp <= self.Fs[i]:
+                self.Fs[i] = tmp
+                self.Ps[i] = [self.Xs[i][j] for j in range(self.PROB_DIMEINTION)]
+            # pop update
+            if self.BestFX == None or tmp <= self.BestFX:
+                self.BestFX = tmp
+                self.BestX = [self.Xs[i][j] for j in range(self.PROB_DIMEINTION)]
+
 
     def evaluate(self, prob):
         for i in range(self.N):
@@ -243,8 +282,11 @@ def run(problem, optimizer, MAX_EVALUATIONS, opt,filename , trial):
     optimizer.init_evaluate(problem) # init evaluate
 
     while evals < MAX_EVALUATIONS:
-        optimizer.update()
+        optimizer.update()          # update V
         optimizer.generation()      # update X
+
+        optimizer.localrainforcements(problem)
+
         optimizer.evaluate(problem)
 
         evals += optimizer.N    # 外回りで書くから微妙やな
