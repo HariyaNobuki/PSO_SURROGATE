@@ -70,19 +70,6 @@ class ParticleSwarmOptimization:
 
         self.BestX     = None # Global best
         self.BestFX    = None # Best fitness (of global best)
-
-        ARCHIVE_X = np.array([])
-        ARCHIVE_F = np.array([])
-        ARCHIVE_POP = []
-        ARCHIVE_DIV = []
-        fit_list = []
-        fit_dict = pd.DataFrame()
-
-        aVar = ARCHIVE_X
-        aObj = ARCHIVE_F
-        data = np.vstack((aVar.T, aObj.T))
-        rbf = Rbf(*data, function='cubic')
-
         
     def initialization(self):
         for i in range(self.N):            
@@ -146,7 +133,7 @@ class RBF_ParticleSwarmOptimization:
         self.C2   = C2    # Social Learning factor
         self.Vmax = Vmax  # Maximum velocity
         self.Xmax = Xmax  # Defined range of position variables (search space)
-        self.SUR = 10
+        self.SUR = 200
 
         #Problem settings
         self.MAX_EVALUATIONS = MAX_EVALUATIONS 
@@ -203,38 +190,39 @@ class RBF_ParticleSwarmOptimization:
         data = np.vstack((aVar.T, aObj.T))
         self.rbf = Rbf(*data, function='cubic')
     
-    def localrainforcements(self,prob):
-        print('### local rainforcement ###')
-        candX = []
+    def localrainforcements(self):
         # Velocity screening
         for i in range(self.N): # candidate pop
+            candV = np.array([])
+            candX = np.array([])
             for sur in range(self.SUR): # screening
+                surX = []
                 for j in range(self.PROB_DIMEINTION):
-                    self.CAND[0][j] = self.W * self.Vs[i][j] + self.C1 * np.random.rand()*(self.Ps[i][j] - self.Xs[i][j]) + self.C2 * np.random.rand()*(self.BestX[j] - self.Xs[i][j])
+                    surres = self.W * self.Vs[i][j] + self.C1 * np.random.rand()*(self.Ps[i][j] - self.Xs[i][j]) + self.C2 * np.random.rand()*(self.BestX[j] - self.Xs[i][j])
                     
-                    if self.CAND[0][j] > self.Vmax:
-                        self.CAND[0][j] = self.Vmax
-                    if self.CAND[0][j] < -self.Vmax:
-                        self.CAND[0][j] = -self.Vmax    # 次元ごとの配列が確定している
-                candX_pre = self.Xs[i] + self.CAND[0]
+                    if surres > self.Vmax:
+                        surres = self.Vmax
+                    if surres < -self.Vmax:
+                        surres = -self.Vmax
+                    surX.append(surres)
+
+                if candV.shape == (0,):
+                    candV = np.expand_dims(surX,0)
+                else:
+                    candV = np.append(candV, np.array([surX]),axis=0)
+
+                candX_pre = self.Xs[i] + surX
                 candX_pre = np.clip(candX_pre, -self.Xmax, self.Xmax)
-                candX.append(candX_pre.tolist()) # Vの候補配列の納品
-            candX = np.array(candX)
+                if candX.shape == (0,):
+                    candX = np.expand_dims(candX_pre,0)
+                else:
+                    candX = np.append(candX, np.array([candX_pre]),axis=0)
+
             rbf_fitness =  self.rbf(*(candX.T))
-            print('END POINT')
+            min_idx = np.argmin(rbf_fitness)
 
-        for i in range(self.N):
-            # ind evaluate
-            tmp = prob.evaluate(self.Xs[i])
-            # ind update
-            if self.Fs[i] == None or tmp <= self.Fs[i]:
-                self.Fs[i] = tmp
-                self.Ps[i] = [self.Xs[i][j] for j in range(self.PROB_DIMEINTION)]
-            # pop update
-            if self.BestFX == None or tmp <= self.BestFX:
-                self.BestFX = tmp
-                self.BestX = [self.Xs[i][j] for j in range(self.PROB_DIMEINTION)]
-
+            self.Xs[i] = candX[min_idx]
+            self.Vs[i] = candV[min_idx]
 
     def evaluate(self, prob):
         for i in range(self.N):
@@ -248,6 +236,23 @@ class RBF_ParticleSwarmOptimization:
             if self.BestFX == None or tmp <= self.BestFX:
                 self.BestFX = tmp
                 self.BestX = [self.Xs[i][j] for j in range(self.PROB_DIMEINTION)]
+
+            if (np.sum(self.ARCHIVE_X == self.Xs[i] , axis=1) == 20).any():
+                print("BUT")
+                continue
+            else:   # add ARCHIVE
+                if (np.sum(self.ARCHIVE_X == self.Xs[i] , axis=1) == 20).any():
+                    print("BUT")
+                    continue
+                else:
+                    self.ARCHIVE_X = np.append(self.ARCHIVE_X, np.array([self.Xs[i]]),axis=0)
+                    self.ARCHIVE_F = np.append(self.ARCHIVE_F , tmp)
+            
+        aVar = self.ARCHIVE_X
+        aObj = self.ARCHIVE_F
+        data = np.vstack((aVar.T, aObj.T))
+        self.rbf = Rbf(*data, function='cubic')
+
 
     def generation(self):
          for i in range(self.N):
@@ -281,8 +286,9 @@ def run(problem, optimizer, MAX_EVALUATIONS, opt,filename , trial):
     while evals < MAX_EVALUATIONS:
         optimizer.update()          # update V
         optimizer.generation()      # update X
-
-        optimizer.localrainforcements(problem)
+        if opt == "RBF_PSO":
+            for i in range(1):
+                optimizer.localrainforcements()
 
         optimizer.evaluate(problem)
 
@@ -321,8 +327,8 @@ def makegraph():
 
         fig, ax = plt.subplots()
         # RS  plot
-        ax.plot(df_all["evals"], df_all["RS_q2"],label="RS")
-        ax.fill_between(df_all["evals"], df_all["RS_q1"],  df_all["RS_q3"],alpha=0.2)
+        ax.plot(df_all["evals"], df_all["RBF_PSO_q2"],label="RBF_PSO")
+        ax.fill_between(df_all["evals"], df_all["RBF_PSO_q1"],  df_all["RBF_PSO_q3"],alpha=0.2)
         # PSO  plot
         ax.plot(df_all["evals"], df_all["PSO_q2"],label="PSO")
         ax.fill_between(df_all["evals"], df_all["PSO_q1"],  df_all["PSO_q3"],alpha=0.2)
@@ -337,10 +343,10 @@ def makegraph():
 
 if __name__ == "__main__":
     #Basic setting (Do NOT change)
-    N, MAX_EVALUATIONS, PROB_DIMEINTION, Xmax = 50, 5000, 20, 50
+    N, MAX_EVALUATIONS, PROB_DIMEINTION, Xmax = 10, 500, 20, 50
     PROBLEM_LIST = ["Rosenbrock", "Ackley", "Rastrigin"]
-    OPTIMIZER = ["RS","PSO"]
-    NUM_TRIAL = 5
+    OPTIMIZER = ["PSO","RBF_PSO"]
+    NUM_TRIAL = 11
 
     # make files
     makefiles()
@@ -352,16 +358,7 @@ if __name__ == "__main__":
             np.random.seed(trial)
             PSO = RBF_ParticleSwarmOptimization(N, W, C1, C2, Xmax, Vmax, MAX_EVALUATIONS, PROB_DIMEINTION)
             fnc = function.Function(PROBLEM_LIST[i], PROB_DIMEINTION)
-            run(fnc, PSO, MAX_EVALUATIONS, "PSO","PSO_{}".format(PROBLEM_LIST[i]),trial)
-
-    #Random search setting
-    for i in range(len(PROBLEM_LIST)):
-        for trial in range(NUM_TRIAL):
-            np.random.seed(trial)
-            RS = RandomSearch(N, Xmax, MAX_EVALUATIONS, PROB_DIMEINTION)
-            fnc = function.Function(PROBLEM_LIST[i], PROB_DIMEINTION)
-            run(fnc, RS, MAX_EVALUATIONS, "RS","RS_{}".format(PROBLEM_LIST[i]),trial)
-
+            run(fnc, PSO, MAX_EVALUATIONS, "RBF_PSO","RBF_PSO_{}".format(PROBLEM_LIST[i]),trial)
 
     #PSO setting
     W, C1, C2, Vmax = 0.4, 2.0, 2.0, 20
