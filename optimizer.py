@@ -160,18 +160,12 @@ class RBF_ParticleSwarmOptimization:
         self.BestX     = None # Global best
         self.BestFX    = None # Best fitness (of global best)
 
-        ARCHIVE_X = np.array([])
-        ARCHIVE_F = np.array([])
-        ARCHIVE_POP = []
-        ARCHIVE_DIV = []
-        fit_list = []
-        fit_dict = pd.DataFrame()
-
-        aVar = ARCHIVE_X
-        aObj = ARCHIVE_F
-        data = np.vstack((aVar.T, aObj.T))
-        rbf = Rbf(*data, function='cubic')
-
+        self.ARCHIVE_X = np.array([])
+        self.ARCHIVE_F = np.array([])
+        self.ARCHIVE_POP = []
+        self.ARCHIVE_DIV = []
+        self.fit_list = []
+        self.fit_dict = pd.DataFrame()
         
     def initialization(self):
         for i in range(self.N):            
@@ -190,6 +184,21 @@ class RBF_ParticleSwarmOptimization:
             if self.BestFX == None or tmp <= self.BestFX:
                 self.BestFX = tmp
                 self.BestX = [self.Xs[i][j] for j in range(self.PROB_DIMEINTION)]
+            
+        for i in range(self.N):
+            if self.ARCHIVE_X.shape == (0,):
+                self.ARCHIVE_X = np.expand_dims(self.Xs[i],0)
+                self.ARCHIVE_F = np.append(self.ARCHIVE_F ,self.Fs[i])
+                self.ARCHIVE_DIV.append([np.quantile(self.ARCHIVE_F,0),np.quantile(self.ARCHIVE_F,0.25),np.quantile(self.ARCHIVE_F,0.50),np.quantile(self.ARCHIVE_F,0.75),np.quantile(self.ARCHIVE_F,1,00)])
+            else:
+                self.ARCHIVE_X = np.append(self.ARCHIVE_X, np.array([self.Xs[i]]),axis=0)
+                self.ARCHIVE_F = np.append(self.ARCHIVE_F , self.Fs[i])
+                self.ARCHIVE_DIV.append([np.quantile(self.ARCHIVE_F,0),np.quantile(self.ARCHIVE_F,0.25),np.quantile(self.ARCHIVE_F,0.50),np.quantile(self.ARCHIVE_F,0.75),np.quantile(self.ARCHIVE_F,1,00)])
+
+        aVar = self.ARCHIVE_X
+        aObj = self.ARCHIVE_F
+        data = np.vstack((aVar.T, aObj.T))
+        self.rbf = Rbf(*data, function='cubic')
 
     def evaluate(self, prob):
         for i in range(self.N):
