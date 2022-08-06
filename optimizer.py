@@ -152,14 +152,13 @@ def makegraph():
             df_all["{}_q3".format(opt)] = q3
 
         fig, ax = plt.subplots()
+        # RS  plot
         ax.plot(df_all["evals"], df_all["RS_q2"],label="RS")
         ax.fill_between(df_all["evals"], df_all["RS_q1"],  df_all["RS_q3"],alpha=0.2)
-        ax.plot(df_all["evals"], df_all["DE_ctobest1_q2"],label="DE")
-        ax.fill_between(df_all["evals"], df_all["DE_ctobest1_q1"],  df_all["DE_ctobest1_q3"],alpha=0.2)
+        # PSO  plot
         ax.plot(df_all["evals"], df_all["PSO_q2"],label="PSO")
         ax.fill_between(df_all["evals"], df_all["PSO_q1"],  df_all["PSO_q3"],alpha=0.2)
-        #ax.plot(df_all["evals"], df_all["DE_ctobest1_q2"],label="ctobest1")
-        #ax.fill_between(df_all["evals"], df_all["DE_ctobest1_q1"],  df_all["DE_ctobest1_q3"],alpha=0.2)
+
         plt.xlabel("evals")
         plt.ylabel("fit")
         plt.yscale('log')
@@ -170,10 +169,10 @@ def makegraph():
 
 if __name__ == "__main__":
     #Basic setting (Do NOT change)
-    N, MAX_EVALUATIONS, PROB_DIMEINTION, Xmax = 50, 50000, 20, 50
+    N, MAX_EVALUATIONS, PROB_DIMEINTION, Xmax = 50, 5000, 20, 50
     PROBLEM_LIST = ["Rosenbrock", "Ackley", "Rastrigin"]
-    OPTIMIZER = ["RS","DE_ctobest1","PSO"]
-    NUM_TRIAL = 11
+    OPTIMIZER = ["RS","PSO"]
+    NUM_TRIAL = 5
 
     # make files
     makefiles()
@@ -185,15 +184,6 @@ if __name__ == "__main__":
             RS = RandomSearch(N, Xmax, MAX_EVALUATIONS, PROB_DIMEINTION)
             fnc = function.Function(PROBLEM_LIST[i], PROB_DIMEINTION)
             run(fnc, RS, MAX_EVALUATIONS, "RS","RS_{}".format(PROBLEM_LIST[i]),trial)
-
-    #DE setting
-    #F, CR = 0.9, 0.9
-    #for i in range(len(PROBLEM_LIST)):
-    #    for trial in range(NUM_TRIAL):
-    #        np.random.seed(trial)
-    #        DE = DifferentialEvolution(N, F, CR, Xmax, MAX_EVALUATIONS, PROB_DIMEINTION)
-    #        fnc = function.Function(PROBLEM_LIST[i], PROB_DIMEINTION)
-    #        run(fnc, DE, MAX_EVALUATIONS, "DE_ctobest1","DE_ctobest1_{}".format(PROBLEM_LIST[i]),trial)
 
 
     #PSO setting
