@@ -243,9 +243,10 @@ def run(problem, optimizer, MAX_EVALUATIONS, opt,filename , trial):
     optimizer.init_evaluate(problem) # init evaluate
 
     while evals < MAX_EVALUATIONS:
+        optimizer.update()
         optimizer.generation()      # update X
         optimizer.evaluate(problem)
-        optimizer.update()
+
         evals += optimizer.N    # 外回りで書くから微妙やな
 
         #logging
