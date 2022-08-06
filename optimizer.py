@@ -216,8 +216,14 @@ class RBF_ParticleSwarmOptimization:
                         self.CAND[0][j] = self.Vmax
                     if self.CAND[0][j] < -self.Vmax:
                         self.CAND[0][j] = -self.Vmax
-                candX.append(self.CAND[0].tolist())
-                print('END POINT')
+                candX_pre = self.Xs[i][j] + self.CAND[0][j]
+                if candX_pre > self.Xmax:
+                    candX_pre = self.Xmax
+                if candX_pre < -self.Xmax:
+                    candX_pre = -self.Xmax
+                candX.append(candX_pre) # Vの候補配列の納品
+            
+            print('END POINT')
         for i in range(self.N):
             for j in range(self.PROB_DIMEINTION):
                 self.Xs[i][j] = self.Xs[i][j] + self.Vs[i][j]
