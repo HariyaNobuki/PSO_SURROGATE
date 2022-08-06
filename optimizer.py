@@ -89,6 +89,19 @@ class ParticleSwarmOptimization:
             self.Xs[i] = np.random.rand(self.PROB_DIMEINTION) *  (2* self.Xmax) - self.Xmax
             self.Vs[i] = np.random.rand(self.PROB_DIMEINTION) *  (2* self.Vmax) - self.Vmax
 
+    def init_evaluate(self, prob):
+        for i in range(self.N):
+            # ind evaluate
+            tmp = prob.evaluate(self.Xs[i])
+            # ind update
+            if self.Fs[i] == None or tmp <= self.Fs[i]:
+                self.Fs[i] = tmp
+                self.Ps[i] = [self.Xs[i][j] for j in range(self.PROB_DIMEINTION)]
+            # pop update
+            if self.BestFX == None or tmp <= self.BestFX:
+                self.BestFX = tmp
+                self.BestX = [self.Xs[i][j] for j in range(self.PROB_DIMEINTION)]
+
     def evaluate(self, prob):
         for i in range(self.N):
             # ind evaluate
@@ -128,20 +141,18 @@ def run(problem, optimizer, MAX_EVALUATIONS, opt,filename , trial):
     evals = 0
     log   = []
 
-    if opt == "RS" or opt == "PSO":
-        optimizer.initialization()
-    else:
-        optimizer.initialization(opt)
-    optimizer.evaluate(problem)
+    optimizer.initialization()
+    optimizer.init_evaluate(problem) # init evaluate
 
     while evals < MAX_EVALUATIONS:
         optimizer.generation()
         optimizer.evaluate(problem)
         optimizer.update()
-        evals += optimizer.N
+        evals += optimizer.N    # 外回りで書くから微妙やな
 
         #logging
-        print(evals, optimizer.BestFX)
+        print("EVALS : ",evals ,end='')
+        print("BEST : ", optimizer.BestFX)
         log.append([evals, optimizer.BestFX])
     np.savetxt('{}/_out_{}_{}.csv'.format(opt,filename,trial), log, delimiter=',') 
 
